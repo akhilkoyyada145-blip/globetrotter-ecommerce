@@ -1,0 +1,124 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowed-headers: "*"
+            allow-credentials: true
+            max-age: 3600
+      routes:
+        - id: auth-service
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - name: RateLimitFilter
+              args:
+                requestsPerMinute: 20
+
+        - id: product-service-protected
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/products/**
+            - Method=POST,PUT,DELETE
+          filters:
+            - JwtAuthenticationFilter
+            - name: RateLimitFilter
+              args:
+                requestsPerMinute: 100
+
+        - id: product-service-public
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/products/**
+            - Method=GET
+          filters:
+            - name: RateLimitFilter
+              args:
+                requestsPerMinute: 100
+
+        - id: category-service-protected
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/categories/**
+            - Method=POST,PUT,DELETE
+          filters:
+            - JwtAuthenticationFilter
+            - name: RateLimitFilter
+              args:
+                requestsPerMinute: 100
+
+        - id: category-service-public
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/categories/**
+            - Method=GET
+          filters:
+            - name: RateLimitFilter
+              args:
+                requestsPerMinute: 100
+
+        - id: cart-service
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/cart/**
+          filters:
+            - JwtAuthenticationFilter
+            - name: RateLimitFilter
+              args:
+                requestsPerMinute: 50
+
+        - id: order-service
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - JwtAuthenticationFilter
+            - name: RateLimitFilter
+              args:
+                requestsPerMinute: 50
+
+        # NEW: Admin Orders Route
+        - id: admin-orders-service
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/admin/orders/**
+          filters:
+            - JwtAuthenticationFilter
+            - name: RateLimitFilter
+              args:
+                requestsPerMinute: 50
+
+jwt:
+  secret: mySecretKeyForGlobetrotterEcommerceApplicationVeryLongAndSecure2024
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    com.globetrotter: DEBUG
